@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # Dịch vụ chính (Main service)
+  main:
+    build:
+      context: ./main
+      dockerfile: Dockerfile
+    volumes:
+      - "./main:/var/www/html"
+    working_dir: /var/www/html
+    ports:
+      - "8000:80"
+    environment:
+      - APACHE_DOCUMENT_ROOT=/var/www/html
+    depends_on:
+      - main_db
+      - product
+
+  # Dịch vụ sản phẩm (Product service)
+  product:
+    build:
+      context: ./product
+      dockerfile: Dockerfile
+    volumes:
+      - "./product:/var/www/html"
+    working_dir: /var/www/html
+    ports:
+      - "8001:80"
+    environment:
+      - APACHE_DOCUMENT_ROOT=/var/www/html
+    depends_on:
+      - product_db
+
+  # Database cho dịch vụ chính
+  main_db:
+    image: mysql:latest
+    environment:
+      - MYSQL_DATABASE=gamestore_main
+      - MYSQL_USER=php_docker
+      - MYSQL_PASSWORD=password
+      - MYSQL_ALLOW_EMPTY_PASSWORD=1
+    volumes:
+      - "./main/database:/docker-entrypoint-initdb.d"
+
+  # Database cho dịch vụ sản phẩm
+  product_db:
+    image: mysql:latest
+    environment:
+      - MYSQL_DATABASE=gamestore_product
+      - MYSQL_USER=php_docker
+      - MYSQL_PASSWORD=password
+      - MYSQL_ALLOW_EMPTY_PASSWORD=1
+    volumes:
+      - "./product/database:/docker-entrypoint-initdb.d"
+
+  # PHPMyAdmin cho main_db
+  phpmyadmin_main:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=main_db
+      - PMA_PORT=3306
+
+  # PHPMyAdmin cho product_db
+  phpmyadmin_product:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_HOST=product_db
+      - PMA_PORT=3306
+  rabbitmq:
+    image: rabbitmq:3-management
+    hostname: 'rabbitmq'
+    container_name: 'rabbitmq'
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      - RABBITMQ_HOST=gxhoavia
+      - RABBITMQ_PASSWORD=aKKU9s8-0PjORV-wj3560ILNMAAYTw69
+      - RABBITMQ_VHOST=gxhoavia # Thêm thông tin về Virtual host
+    volumes:
+      - ./data/:/var/lib/rabbitmq/
+      - ./log/:/var/log/rabbitmq/
